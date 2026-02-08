@@ -1,8 +1,13 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// --- Resize canvas dynamically ---
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
 // --- Images ---
 const rawdaImg = new Image();
@@ -65,6 +70,10 @@ function move(dir) {
   if (dir === "right") rawda.x += speed;
   if (dir === "up") rawda.y -= speed;
   if (dir === "down") rawda.y += speed;
+
+  // --- Keep Rawda inside canvas ---
+  rawda.x = Math.max(rawda.r + 40, Math.min(canvas.width - rawda.r - 40, rawda.x));
+  rawda.y = Math.max(rawda.r + 40, Math.min(canvas.height - rawda.r - 40, rawda.y));
 }
 
 // --- Dialogue ---
@@ -152,6 +161,30 @@ function drawConfetti() {
   });
 }
 
+// --- Draw multiline text ---
+function drawMultilineText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let lines = [];
+
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = ctx.measureText(testLine);
+    const testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      lines.push(line);
+      line = words[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line);
+
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, y + i * lineHeight);
+  }
+}
+
 // --- Game loop ---
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -197,55 +230,29 @@ function update() {
   // --- Follow logic ---
   if (scene === "follow") {
     rawda.x += 3;
-    rawda.y = 200;
+    rawda.y = canvas.height / 2; // center Y on any screen
     if (rawda.x > canvas.width - 200) scene = "cake";
   }
 
-
-  function drawMultilineText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(' ');
-  let line = '';
-  let lines = [];
-
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
-    const metrics = ctx.measureText(testLine);
-    const testWidth = metrics.width;
-    if (testWidth > maxWidth && n > 0) {
-      lines.push(line);
-      line = words[n] + ' ';
-    } else {
-      line = testLine;
-    }
-  }
-  lines.push(line);
-
-  for (let i = 0; i < lines.length; i++) {
-    ctx.fillText(lines[i], x, y + i * lineHeight);
-  }
-}
-
-
   // --- Cake scene ---
-if (scene === "cake") {
-  ctx.fillStyle = "#ffb6c1";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  if (scene === "cake") {
+    ctx.fillStyle = "#ffb6c1";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  ctx.drawImage(cakeImg, canvas.width/2-80, canvas.height/2-80, 160, 160);
+    ctx.drawImage(cakeImg, canvas.width/2-80, canvas.height/2-80, 160, 160);
 
-  ctx.fillStyle = "white";
-  ctx.font = "20px Arial"; // smaller font
-  ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+    ctx.font = "18px Arial"; // smaller font
+    ctx.textAlign = "center";
 
-  const cakeMessage = "🎉 كل سنة وانتي طيبة يا روضتي، مقتنع اني مش هلاقي حد كويس زيك في حياتي كمية الحاجات الحلوة اللي انتي عملتيهالي مش قادر اوصفهالك ولا اعبرلك عنها بجد بجد اتمنى تكوني بخير على طول واتمنالك على طول عيد ميلاد تكوني كويسة ومبسوطة فيه وتكوني مع اللي بتحبيهم ودايمًا وع طول كوني اجمل بنوتة يا روضتي 🎉";
+    const cakeMessage = "🎉 كل سنة وانتي طيبة يا روضتي، مقتنع اني مش هلاقي حد كويس زيك في حياتي كمية الحاجات الحلوة اللي انتي عملتيهالي مش قادر اوصفهالك ولا اعبرلك عنها بجد بجد اتمنى تكوني بخير على طول واتمنالك على طول عيد ميلاد تكوني كويسة ومبسوطة فيه وتكوني مع اللي بتحبيهم ودايمًا وع طول كوني اجمل بنوتة يا روضتي 🎉";
 
-  drawMultilineText(ctx, cakeMessage, canvas.width/2, canvas.height/2 + 120, 600, 28); // maxWidth=600px, lineHeight=28px
+    drawMultilineText(ctx, cakeMessage, canvas.width/2, canvas.height/2 + 120, canvas.width * 0.8, 28); // wrap to 80% of screen width
 
-  drawConfetti();
-  requestAnimationFrame(update);
-  return;
-}
-
+    drawConfetti();
+    requestAnimationFrame(update);
+    return;
+  }
 
   // --- Draw Rawda ---
   drawGoofyCharacter(rawdaImg, rawda, scene==="find");
